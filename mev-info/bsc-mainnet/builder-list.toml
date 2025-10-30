@@ -228,3 +228,9 @@ Address = "0x5054b21D8baea3d602dca8761B235ee10bc0231E"
 RPC = "https://bsc-builder-report.txboost.io"
 Website = "https://account.txboost.io"
 Description = "We Empower Teams to Excel in DeFi Trading"
+
+[flashblock-us]
+Address = "0x76b5396bc6ef0f6ef724f9cc3331b908ed6f8dbd"
+RPC = "https://bsc-builder.flashblock.trade"
+Website = "https://www.flashblock.trade"
+Description = "Built for Traders. Lightning-Fast Transaction Execution on BSC."
