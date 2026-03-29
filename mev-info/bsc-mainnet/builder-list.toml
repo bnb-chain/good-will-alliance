@@ -222,3 +222,9 @@ Address = "0x89b08890751b28511541f5fed08d7d964caae911"
 RPC = "https://us.bsc.flashblock.trade"
 Website = "https://www.flashblock.trade"
 Description = "Built for Traders. Lightning-Fast Transaction Execution on BSC."
+
+[fxolioinsider-sg]
+Address = "0xe50Fae586D568903A0FcaadA73449D69BB989A11"
+RPC = "http://5.199.165.19:8545"
+Description = "Independent BSC builder - Singapore region"
+Contact = "fxolioinsider"
