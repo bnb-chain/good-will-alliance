@@ -19,3 +19,6 @@ docs/*
 .env
 .env.*
 !.env.example
+
+# Deploy inputs are generated from mev-info/*/builder-list.toml by script/gen-builders.py; do not commit them.
+script/input/
