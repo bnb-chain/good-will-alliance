@@ -1,5 +1,7 @@
 # Builder Key Registry
 
+[Contract usage guide (English)](docs/usage.md) — interfaces, limits, ownership, and integration behavior.
+
 BSC MEV builder 签名 key 的链上注册表。MEV-Sentry 定期读取 `getBuilders()` 并替换本地 allowlist，
 取代目前各 validator 手工维护的 `[[Builders]]` 配置。设计背景见 [good-will-alliance#15](https://github.com/bnb-chain/good-will-alliance/issues/15)。
 
@@ -12,12 +14,18 @@ BSC MEV builder 签名 key 的链上注册表。MEV-Sentry 定期读取 `getBuil
 | 能力 | 接口 |
 |---|---|
 | 读取全部 key（sentry 每轮全量读） | `getBuilders()` |
+| 分页读取（名单很大时备用；翻页须固定同一块高） | `getBuildersRange(offset, limit)` |
 | 单个查询 | `isBuilder(addr)`、`getBuilder(addr)`、`builderCount()` |
-| 增 / 改（按 `addr` 幂等，已存在则更新 `url` / `name`） | `addBuilder(addr, url, name)`、`addBuilders(Builder[])` |
+| 新增（地址已存在则 revert） | `addBuilder(addr, url, name)`、`addBuilders(Builder[])` |
+| 修改已有记录的 `url` / `name`（地址不存在则 revert） | `updateBuilder(addr, url, name)` |
+| 原子轮换：同一交易内删旧 key、加新 key，沿用原 `name`，满额时也可用 | `replaceBuilder(oldAddr, newAddr, url)` |
 | 删 | `removeBuilder(addr)` |
 | 每个 builder 的 key 上限 | `defaultMaxKeys()`、`maxKeys(name)`、`keyCount(name)`、`setDefaultMaxKeys(n)`、`setMaxKeys(name, n)` |
 | admin 转移（两步：提议 + 接受） | `transferOwnership(addr)` → 新 owner 调 `acceptOwnership()` |
 | 升级实现合约 | `upgradeToAndCall(newImpl, "")` |
+
+字段长度：`url` ≤ 256 字节，`name` ≤ 64 字节（`MAX_URL_LENGTH` / `MAX_NAME_LENGTH`），超出 `FieldTooLong` revert。
+这把 `getBuilders()` 的返回体积限制在 `builderCount × 约 400 字节` 以内。
 
 数据结构：
 
@@ -38,6 +46,10 @@ struct Builder {
 
 `renounceOwnership()` 已禁用（调用即 `RenounceDisabled` revert）。放弃 owner 会让合约永久失去 admin 和升级能力，
 换 admin 只能走两步转移。
+
+`Builder` 结构体布局是**冻结**的：它是存储数组的元素类型，增删字段会改变每个元素占用的 slot 数，
+升级后旧数据会被读错位，同时也会改变 `getBuilders()` 的 ABI 编码。以后要给 key 附加信息，
+在现有状态变量之后追加一个 `mapping(address => ...)`，不要动结构体。
 
 ---
 
@@ -239,7 +251,8 @@ PROXY=<proxy 地址> forge script script/Upgrade.s.sol --rpc-url bsc_testnet --a
 | 操作 | 命令 |
 |---|---|
 | 新增 key | `cast send $PROXY "addBuilder(address,string,string)" <addr> <url> <name> ...` |
-| 更新 URL | 同上，`addr` 已存在时只更新 |
+| 更新已有 key 的 URL 或 name | `cast send $PROXY "updateBuilder(address,string,string)" <addr> <url> <name> ...` |
+| 轮换 key（一笔交易，删旧加新） | `cast send $PROXY "replaceBuilder(address,address,string)" <old> <new> <url> ...` |
 | 删除 key | `cast send $PROXY "removeBuilder(address)" <addr> ...` |
 | 调整某 builder 上限 | `cast send $PROXY "setMaxKeys(string,uint256)" flashblock 2 ...` |
 | 调整默认上限 | `cast send $PROXY "setDefaultMaxKeys(uint256)" 4 ...` |
@@ -249,7 +262,9 @@ PROXY=<proxy 地址> forge script script/Upgrade.s.sol --rpc-url bsc_testnet --a
 
 - **新增**：先通知 validator 把 key 加进节点配置，确认后再上链。
 - **删除**：先上链，validator 节点侧随时清理。
-- **轮换**：按「新增 → 删除」执行。
+- **轮换**：需要新旧 key 重叠期时按「新增 → 删除」两步执行（满额时先临时调高上限）；
+  不需要重叠期时用 `replaceBuilder` 一笔完成，链上不会出现「旧 key 已删、新 key 未加」的中间状态。
+  两种方式都要先让 validator 节点配置里有新 key。
 
 ---
 
@@ -257,5 +272,7 @@ PROXY=<proxy 地址> forge script script/Upgrade.s.sol --rpc-url bsc_testnet --a
 
 - **`vm.parseJson` 解析失败 / 字段错位**：JSON 对象的 key 必须按字母序（`addr, name, url`），并与脚本里 `Entry` 结构体字段顺序一致。`gen-builders.py` 已保证这一点。
 - **`KeyCapReached`**：该 `name` 已达上限。看 `keyCount(name)` 和 `maxKeys(name)`。
+- **`BuilderExists`**：`addBuilder` / `addBuilders` 遇到已注册地址。想改记录用 `updateBuilder`；想换 key 用 `replaceBuilder`。批量灌入时出现这个错误通常是 JSON 里有重复地址。
+- **`FieldTooLong`**：`url` 超 256 字节或 `name` 超 64 字节。
 - **`OwnableUnauthorizedAccount`**：调用账户不是 owner。如果刚转移过 admin，确认新 owner 已经 `acceptOwnership()`。
 - **`InvalidInitialization`**：试图对已初始化的 proxy 或对 implementation 本体调 `initialize`。
