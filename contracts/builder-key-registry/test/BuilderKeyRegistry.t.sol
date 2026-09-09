@@ -223,16 +223,29 @@ contract BuilderKeyRegistryTest is Test {
     }
 
     // ------------------------------------------------------------------
-    // Update semantics (idempotent add)
+    // Strict add vs. update
     // ------------------------------------------------------------------
 
-    function test_update_urlOnlyDoesNotChangeCounts() public {
+    function test_addBuilder_rejectsExistingAddress() public {
+        vm.startPrank(owner);
+        registry.addBuilder(k1, "https://a.example", "alpha");
+        // Even with identical fields: add is strict, use updateBuilder to change a record.
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.BuilderExists.selector, k1));
+        registry.addBuilder(k1, "https://a.example", "alpha");
+        // Mistyping an existing address while meaning to add a key for another builder is caught.
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.BuilderExists.selector, k1));
+        registry.addBuilder(k1, "https://b.example", "beta");
+        vm.stopPrank();
+        assertEq(registry.getBuilder(k1).name, "alpha");
+    }
+
+    function test_updateBuilder_urlOnlyDoesNotChangeCounts() public {
         vm.startPrank(owner);
         registry.addBuilder(k1, "https://old.example", "alpha");
 
         vm.expectEmit(true, false, false, true);
         emit BuilderUpdated(k1, "https://new.example", "alpha");
-        registry.addBuilder(k1, "https://new.example", "alpha");
+        registry.updateBuilder(k1, "https://new.example", "alpha");
         vm.stopPrank();
 
         assertEq(registry.builderCount(), 1);
@@ -240,10 +253,10 @@ contract BuilderKeyRegistryTest is Test {
         assertEq(registry.getBuilder(k1).url, "https://new.example");
     }
 
-    function test_update_nameChangeMovesCount() public {
+    function test_updateBuilder_nameChangeMovesCount() public {
         vm.startPrank(owner);
         registry.addBuilder(k1, "https://a.example", "alpha");
-        registry.addBuilder(k1, "https://a.example", "beta");
+        registry.updateBuilder(k1, "https://a.example", "beta");
         vm.stopPrank();
 
         assertEq(registry.keyCount("alpha"), 0);
@@ -251,13 +264,169 @@ contract BuilderKeyRegistryTest is Test {
         assertEq(registry.getBuilder(k1).name, "beta");
     }
 
-    function test_update_nameChangeRespectsCapOfNewName() public {
+    function test_updateBuilder_nameChangeRespectsCapOfNewName() public {
         _addN("alpha", 4);
         vm.startPrank(owner);
         registry.addBuilder(k5, "https://b.example", "beta");
         vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.KeyCapReached.selector, "alpha", DEFAULT_CAP));
-        registry.addBuilder(k5, "https://b.example", "alpha");
+        registry.updateBuilder(k5, "https://b.example", "alpha");
         vm.stopPrank();
+    }
+
+    function test_updateBuilder_unknownReverts() public {
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.UnknownBuilder.selector, k1));
+        vm.prank(owner);
+        registry.updateBuilder(k1, "https://a.example", "alpha");
+    }
+
+    function test_updateBuilder_onlyOwner() public {
+        vm.prank(owner);
+        registry.addBuilder(k1, "https://a.example", "alpha");
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, stranger));
+        vm.prank(stranger);
+        registry.updateBuilder(k1, "https://b.example", "alpha");
+    }
+
+    function test_updateBuilder_validatesFields() public {
+        vm.startPrank(owner);
+        registry.addBuilder(k1, "https://a.example", "alpha");
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.EmptyField.selector, "url"));
+        registry.updateBuilder(k1, "", "alpha");
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.InvalidName.selector, "Alpha"));
+        registry.updateBuilder(k1, "https://a.example", "Alpha");
+        vm.stopPrank();
+    }
+
+    // ------------------------------------------------------------------
+    // replaceBuilder (atomic rotation)
+    // ------------------------------------------------------------------
+
+    function test_replaceBuilder_worksAtCap() public {
+        _addN("alpha", 4); // alpha is full
+        assertEq(registry.keyCount("alpha"), DEFAULT_CAP);
+
+        vm.expectEmit(true, false, false, true);
+        emit BuilderRemoved(k1, "alpha");
+        vm.expectEmit(true, false, false, true);
+        emit BuilderAdded(k5, "https://rotated.example", "alpha");
+
+        vm.prank(owner);
+        registry.replaceBuilder(k1, k5, "https://rotated.example");
+
+        assertFalse(registry.isBuilder(k1));
+        assertTrue(registry.isBuilder(k5));
+        assertEq(registry.keyCount("alpha"), DEFAULT_CAP);
+        assertEq(registry.builderCount(), 4);
+        BuilderKeyRegistry.Builder memory b = registry.getBuilder(k5);
+        assertEq(b.name, "alpha");
+        assertEq(b.url, "https://rotated.example");
+    }
+
+    function test_replaceBuilder_rejectsUnknownOld() public {
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.UnknownBuilder.selector, k1));
+        vm.prank(owner);
+        registry.replaceBuilder(k1, k2, "https://a.example");
+    }
+
+    function test_replaceBuilder_rejectsExistingNew() public {
+        vm.startPrank(owner);
+        registry.addBuilder(k1, "u", "alpha");
+        registry.addBuilder(k2, "u", "beta");
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.BuilderExists.selector, k2));
+        registry.replaceBuilder(k1, k2, "u");
+        vm.stopPrank();
+    }
+
+    function test_replaceBuilder_rejectsSameAndZero() public {
+        vm.startPrank(owner);
+        registry.addBuilder(k1, "u", "alpha");
+        vm.expectRevert(BuilderKeyRegistry.SameAddress.selector);
+        registry.replaceBuilder(k1, k1, "u");
+        vm.expectRevert(BuilderKeyRegistry.ZeroAddress.selector);
+        registry.replaceBuilder(k1, address(0), "u");
+        vm.stopPrank();
+    }
+
+    function test_replaceBuilder_onlyOwner() public {
+        vm.prank(owner);
+        registry.addBuilder(k1, "u", "alpha");
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, stranger));
+        vm.prank(stranger);
+        registry.replaceBuilder(k1, k2, "u");
+    }
+
+    function test_replaceBuilder_isAtomicWhenCapLoweredBelowCount() public {
+        _addN("alpha", 4);
+        vm.startPrank(owner);
+        registry.setDefaultMaxKeys(2); // alpha now holds 4 > cap 2
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.KeyCapReached.selector, "alpha", 2));
+        registry.replaceBuilder(k1, k5, "u");
+        vm.stopPrank();
+        // Whole call reverted: the old key was NOT removed.
+        assertTrue(registry.isBuilder(k1));
+        assertEq(registry.keyCount("alpha"), 4);
+    }
+
+    // ------------------------------------------------------------------
+    // Field length limits
+    // ------------------------------------------------------------------
+
+    function test_length_urlTooLong() public {
+        string memory longUrl = _repeat("a", registry.MAX_URL_LENGTH() + 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(BuilderKeyRegistry.FieldTooLong.selector, "url", registry.MAX_URL_LENGTH())
+        );
+        vm.prank(owner);
+        registry.addBuilder(k1, longUrl, "alpha");
+    }
+
+    function test_length_urlAtLimitAccepted() public {
+        string memory url = _repeat("a", registry.MAX_URL_LENGTH());
+        vm.prank(owner);
+        registry.addBuilder(k1, url, "alpha");
+        assertEq(bytes(registry.getBuilder(k1).url).length, registry.MAX_URL_LENGTH());
+    }
+
+    function test_length_nameTooLong() public {
+        string memory longName = _repeat("a", registry.MAX_NAME_LENGTH() + 1);
+        vm.expectRevert(
+            abi.encodeWithSelector(BuilderKeyRegistry.FieldTooLong.selector, "name", registry.MAX_NAME_LENGTH())
+        );
+        vm.prank(owner);
+        registry.addBuilder(k1, "https://a.example", longName);
+    }
+
+    // ------------------------------------------------------------------
+    // Pagination
+    // ------------------------------------------------------------------
+
+    function test_getBuildersRange_pagesCoverSetExactlyOnce() public {
+        vm.prank(owner);
+        registry.setDefaultMaxKeys(10);
+        _addN("alpha", 5);
+        BuilderKeyRegistry.Builder[] memory p0 = registry.getBuildersRange(0, 2);
+        BuilderKeyRegistry.Builder[] memory p1 = registry.getBuildersRange(2, 2);
+        BuilderKeyRegistry.Builder[] memory p2 = registry.getBuildersRange(4, 2); // last page, shorter
+        BuilderKeyRegistry.Builder[] memory p3 = registry.getBuildersRange(6, 2); // beyond end
+
+        assertEq(p0.length, 2);
+        assertEq(p1.length, 2);
+        assertEq(p2.length, 1);
+        assertEq(p3.length, 0);
+
+        BuilderKeyRegistry.Builder[] memory all = registry.getBuilders();
+        assertEq(p0[0].addr, all[0].addr);
+        assertEq(p0[1].addr, all[1].addr);
+        assertEq(p1[0].addr, all[2].addr);
+        assertEq(p1[1].addr, all[3].addr);
+        assertEq(p2[0].addr, all[4].addr);
+    }
+
+    function test_getBuildersRange_limitClampAndOverflowGuard() public {
+        _addN("alpha", 3);
+        assertEq(registry.getBuildersRange(0, type(uint256).max).length, 3);
+        assertEq(registry.getBuildersRange(1, type(uint256).max).length, 2);
+        assertEq(registry.getBuildersRange(0, 0).length, 0);
     }
 
     // ------------------------------------------------------------------
@@ -291,6 +460,16 @@ contract BuilderKeyRegistryTest is Test {
         registry.addBuilders(batch);
 
         // Atomic: nothing from the batch landed.
+        assertEq(registry.builderCount(), 0);
+    }
+
+    function test_addBuilders_rejectsDuplicateAddressInBatch() public {
+        BuilderKeyRegistry.Builder[] memory batch = new BuilderKeyRegistry.Builder[](2);
+        batch[0] = BuilderKeyRegistry.Builder(k1, "u1", "alpha");
+        batch[1] = BuilderKeyRegistry.Builder(k1, "u2", "beta"); // same address, would silently overwrite before
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.BuilderExists.selector, k1));
+        vm.prank(owner);
+        registry.addBuilders(batch);
         assertEq(registry.builderCount(), 0);
     }
 
@@ -517,6 +696,17 @@ contract BuilderKeyRegistryTest is Test {
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
+
+    function _repeat(string memory s, uint256 n) internal pure returns (string memory out) {
+        bytes memory unit = bytes(s);
+        bytes memory buf = new bytes(unit.length * n);
+        for (uint256 i = 0; i < n; ++i) {
+            for (uint256 j = 0; j < unit.length; ++j) {
+                buf[i * unit.length + j] = unit[j];
+            }
+        }
+        out = string(buf);
+    }
 
     function _addN(string memory name, uint256 n) internal {
         address[5] memory ks = [k1, k2, k3, k4, k5];
