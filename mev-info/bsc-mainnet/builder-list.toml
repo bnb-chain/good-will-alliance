@@ -49,28 +49,28 @@ Contact = "puissant@48.club"
 
 [blockrazor-dublin]
 Address = "0x5532CdB3c0c4278f9848fc4560b495b70bA67455"
-RPC = "https://dublin.builder.blockrazor.io"
+RPC = "https://rpc.blockrazor.builders"
 Website = "https://www.blockrazor.io"
 Description = "We build this neutral builder with multiple strategies and algorithms to make most valuable block. Check our website for more info!"
 Contact = "support@blockrazor.io"
 
 [blockrazor-nyc]
 Address = "0x539E24781f616F0d912B60813aB75B7b80b75C53"
-RPC = "https://nyc.builder.blockrazor.io"
+RPC = "https://rpc.blockrazor.builders"
 Website = "https://www.blockrazor.io"
 Description = "We build this neutral builder with multiple strategies and algorithms to make most valuable block. Check our website for more info!"
 Contact = "support@blockrazor.io"
 
 [blockrazor-relay]
 Address = "0x49D91b1Ab0CC6A1591c2e5863E602d7159d36149"
-RPC = "https://relay.builder.blockrazor.io"
+RPC = "https://rpc.blockrazor.builders"
 Website = "https://www.blockrazor.io"
 Description = "We provide an audited builder solution that ensures each block, transaction, and bundle is scrutinized by authoritative security agencies. Utilizing multiple strategies and advanced algorithms, we aim to build the most valuable and secure blocks. Visit our website for more information!"
 Contact = "support@blockrazor.io"
 
 [blockrazor-x]
 Address = "0x488e37fcB2024A5B2F4342c7dE636f0825dE6448"
-RPC = "https://x.builder.blockrazor.io"
+RPC = "https://rpc.blockrazor.builders"
 Website = "https://www.blockrazor.io"
 Description = "We provide an audited builder solution that ensures each block, transaction, and bundle is scrutinized by authoritative security agencies. Utilizing multiple strategies and advanced algorithms, we aim to build the most valuable and secure blocks. Visit our website for more information!"
 Contact = "support@blockrazor.io"
