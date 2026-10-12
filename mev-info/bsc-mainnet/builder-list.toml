@@ -54,13 +54,6 @@ Website = "https://www.blockrazor.io"
 Description = "We build this neutral builder with multiple strategies and algorithms to make most valuable block. Check our website for more info!"
 Contact = "support@blockrazor.io"
 
-[blockrazor-frankfurt]
-Address = "0xBA4233f6e478DB76698b0A5000972Af0196b7bE1"
-RPC = "https://frankfurt.builder.blockrazor.io"
-Website = "https://www.blockrazor.io"
-Description = "We build this neutral builder with multiple strategies and algorithms to make most valuable block. Check our website for more info!"
-Contact = "support@blockrazor.io"
-
 [blockrazor-nyc]
 Address = "0x539E24781f616F0d912B60813aB75B7b80b75C53"
 RPC = "https://nyc.builder.blockrazor.io"
@@ -73,20 +66,6 @@ Address = "0x49D91b1Ab0CC6A1591c2e5863E602d7159d36149"
 RPC = "https://relay.builder.blockrazor.io"
 Website = "https://www.blockrazor.io"
 Description = "We provide an audited builder solution that ensures each block, transaction, and bundle is scrutinized by authoritative security agencies. Utilizing multiple strategies and advanced algorithms, we aim to build the most valuable and secure blocks. Visit our website for more information!"
-Contact = "support@blockrazor.io"
-
-[blockrazor-tokyo]
-Address = "0x50061047B9c7150f0Dc105f79588D1B07D2be250"
-RPC = "https://tokyo.builder.blockrazor.io"
-Website = "https://www.blockrazor.io"
-Description = "We build this neutral builder with multiple strategies and algorithms to make most valuable block. Check our website for more info!"
-Contact = "support@blockrazor.io"
-
-[blockrazor-virginia]
-Address = "0x0557E8CB169F90F6eF421a54e29d7dd0629Ca597"
-RPC = "https://virginia.builder.blockrazor.io"
-Website = "https://www.blockrazor.io"
-Description = "We build this neutral builder with multiple strategies and algorithms to make most valuable block. Check our website for more info!"
 Contact = "support@blockrazor.io"
 
 [blockrazor-x]
