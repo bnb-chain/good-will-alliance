@@ -181,6 +181,16 @@ contract BuilderKeyRegistry is Initializable, Ownable2StepUpgradeable, UUPSUpgra
         _remove(addr);
     }
 
+    /// @notice Removes multiple keys in one transaction, regardless of the cap.
+    /// @dev Emits {BuilderRemoved} for each address. An unknown or duplicate address
+    ///      reverts the entire batch. An empty array is a no-op.
+    function removeBuilders(address[] calldata addrs) external onlyOwner {
+        uint256 len = addrs.length;
+        for (uint256 i = 0; i < len; ++i) {
+            _remove(addrs[i]);
+        }
+    }
+
     // ---------------------------------------------------------------------
     // Admin: caps
     // ---------------------------------------------------------------------

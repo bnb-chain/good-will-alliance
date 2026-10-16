@@ -562,6 +562,125 @@ contract BuilderKeyRegistryTest is Test {
     }
 
     // ------------------------------------------------------------------
+    // removeBuilders (batch)
+    // ------------------------------------------------------------------
+
+    function test_removeBuilders_batchUpdatesIndexesCountsAndEvents() public {
+        vm.startPrank(owner);
+        registry.addBuilder(k1, "u1", "alpha");
+        registry.addBuilder(k2, "u2", "alpha");
+        registry.addBuilder(k3, "u3", "beta");
+        registry.addBuilder(k4, "u4", "beta");
+
+        address[] memory addrs = new address[](2);
+        addrs[0] = k2;
+        addrs[1] = k4; // k4 moves into k2's slot during the first removal
+        vm.expectEmit(true, false, false, true);
+        emit BuilderRemoved(k2, "alpha");
+        vm.expectEmit(true, false, false, true);
+        emit BuilderRemoved(k4, "beta");
+        registry.removeBuilders(addrs);
+        vm.stopPrank();
+
+        assertEq(registry.builderCount(), 2);
+        assertEq(registry.keyCount("alpha"), 1);
+        assertEq(registry.keyCount("beta"), 1);
+        assertFalse(registry.isBuilder(k2));
+        assertFalse(registry.isBuilder(k4));
+        assertEq(registry.getBuilder(k1).url, "u1");
+        assertEq(registry.getBuilder(k3).url, "u3");
+        BuilderKeyRegistry.Builder[] memory all = registry.getBuilders();
+        assertEq(all[0].addr, k1);
+        assertEq(all[1].addr, k3);
+    }
+
+    function test_removeBuilders_unknownAddressRevertsWholeBatch() public {
+        _addN("alpha", 3);
+        bytes32 before = keccak256(abi.encode(registry.getBuilders()));
+        address[] memory addrs = new address[](2);
+        addrs[0] = k1;
+        addrs[1] = k5;
+
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.UnknownBuilder.selector, k5));
+        vm.prank(owner);
+        registry.removeBuilders(addrs);
+
+        assertEq(keccak256(abi.encode(registry.getBuilders())), before);
+        assertEq(registry.keyCount("alpha"), 3);
+        assertTrue(registry.isBuilder(k1));
+        assertEq(registry.getBuilder(k3).addr, k3);
+    }
+
+    function test_removeBuilders_duplicateAddressRevertsWholeBatch() public {
+        _addN("alpha", 3);
+        bytes32 before = keccak256(abi.encode(registry.getBuilders()));
+        address[] memory addrs = new address[](3);
+        addrs[0] = k1;
+        addrs[1] = k2;
+        addrs[2] = k1;
+
+        vm.expectRevert(abi.encodeWithSelector(BuilderKeyRegistry.UnknownBuilder.selector, k1));
+        vm.prank(owner);
+        registry.removeBuilders(addrs);
+
+        assertEq(keccak256(abi.encode(registry.getBuilders())), before);
+        assertEq(registry.keyCount("alpha"), 3);
+        assertTrue(registry.isBuilder(k1));
+        assertTrue(registry.isBuilder(k2));
+        assertEq(registry.getBuilder(k3).addr, k3);
+    }
+
+    function test_removeBuilders_onlyOwner() public {
+        _addN("alpha", 2);
+        address[] memory addrs = new address[](2);
+        addrs[0] = k1;
+        addrs[1] = k2;
+
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, stranger));
+        vm.prank(stranger);
+        registry.removeBuilders(addrs);
+
+        assertEq(registry.builderCount(), 2);
+        assertEq(registry.keyCount("alpha"), 2);
+        assertTrue(registry.isBuilder(k1));
+        assertTrue(registry.isBuilder(k2));
+    }
+
+    function test_removeBuilders_emptyArrayIsNoOp() public {
+        _addN("alpha", 2);
+        bytes32 before = keccak256(abi.encode(registry.getBuilders()));
+        vm.prank(owner);
+        registry.removeBuilders(new address[](0));
+        assertEq(keccak256(abi.encode(registry.getBuilders())), before);
+        assertEq(registry.keyCount("alpha"), 2);
+    }
+
+    function test_removeBuilders_canRemoveAllAboveCapAndReuseKeys() public {
+        _addN("alpha", 4);
+        address[] memory addrs = new address[](4);
+        addrs[0] = k1;
+        addrs[1] = k4;
+        addrs[2] = k2;
+        addrs[3] = k3;
+
+        vm.startPrank(owner);
+        registry.setDefaultMaxKeys(1);
+        registry.removeBuilders(addrs);
+        assertEq(registry.builderCount(), 0);
+        assertEq(registry.keyCount("alpha"), 0);
+        assertEq(registry.getBuilders().length, 0);
+        for (uint256 i = 0; i < addrs.length; ++i) {
+            assertFalse(registry.isBuilder(addrs[i]));
+        }
+        registry.addBuilder(k1, "new-url", "alpha");
+        vm.stopPrank();
+
+        assertEq(registry.builderCount(), 1);
+        assertEq(registry.keyCount("alpha"), 1);
+        assertEq(registry.getBuilder(k1).url, "new-url");
+    }
+
+    // ------------------------------------------------------------------
     // Views
     // ------------------------------------------------------------------
 

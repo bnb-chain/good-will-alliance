@@ -68,6 +68,7 @@ All methods below require the current `owner()`. Builders request changes from t
 | `updateBuilder(addr, url, name)` | Updates an existing record; changing the name checks the destination limit |
 | `replaceBuilder(oldAddr, newAddr, url)` | Atomically replaces an address, preserving its name; the new address must be nonzero, different, and unregistered |
 | `removeBuilder(addr)` | Removes an existing address regardless of the limit |
+| `removeBuilders(addrs)` | Removes multiple addresses in one transaction; any unknown or duplicate address reverts the entire batch |
 | `setDefaultMaxKeys(max)` | Sets a nonzero default limit |
 | `setMaxKeys(name, max)` | Sets an override; zero clears it |
 
@@ -83,6 +84,17 @@ cast send "$REGISTRY" 'addBuilder(address,string,string)' \
 ```
 
 For a contract wallet or multisig owner, execute the equivalent call through that wallet; a signer account is not itself the owner. After a successful transaction, confirm the record and counts through the proxy.
+
+To remove several keys in one transaction, set `KEY_1` and `KEY_2` to registered signing addresses:
+
+```bash
+cast send "$REGISTRY" 'removeBuilders(address[])' "[$KEY_1,$KEY_2]" \
+  --rpc-url "$RPC_URL" --account "$OWNER_ACCOUNT"
+```
+
+For a Safe owner, select `removeBuilders` on the proxy in Transaction Builder and supply the address
+array. One Safe transaction executes the whole batch. Each removed key emits `BuilderRemoved`;
+an unknown or repeated address reverts all deletions. An empty array makes no changes.
 
 ## Ownership and upgrades
 
