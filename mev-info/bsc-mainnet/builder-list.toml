@@ -222,3 +222,10 @@ Address = "0x89b08890751b28511541f5fed08d7d964caae911"
 RPC = "https://us.bsc.flashblock.trade"
 Website = "https://www.flashblock.trade"
 Description = "Built for Traders. Lightning-Fast Transaction Execution on BSC."
+
+[zeminus-us-east]
+Address = "0x871886CEce0b1B3c250537EbdC51C8933B660786"
+RPC = "https://rpc.bsc.zeminus.com"
+Website = "https://zeminus.com"
+Description = "BSC block builder with open-source bundle-level sandwich filtering. No unbundling or public broadcast of submitted bundles."
+Contact = "builders@zeminus.com"
