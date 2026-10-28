@@ -222,3 +222,9 @@ Address = "0x89b08890751b28511541f5fed08d7d964caae911"
 RPC = "https://us.bsc.flashblock.trade"
 Website = "https://www.flashblock.trade"
 Description = "Built for Traders. Lightning-Fast Transaction Execution on BSC."
+
+[trustnet]
+Address = "0x2d3cc0a25a05e6eb3d5d3ea21d72c8d71b436a7f"
+RPC = "https://rpc.teetrust.net/"
+Website = "https://www.teetrust.net"
+Description = "TrustNet - TEE block builder enables encrypted block building "
