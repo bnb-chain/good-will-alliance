@@ -96,22 +96,9 @@ Website = "https://www.blockrazor.io"
 Description = "We provide an audited builder solution that ensures each block, transaction, and bundle is scrutinized by authoritative security agencies. Utilizing multiple strategies and advanced algorithms, we aim to build the most valuable and secure blocks. Visit our website for more information!"
 Contact = "support@blockrazor.io"
 
-[bloxroute-builder-dublin]
-Address = "0xD4376FdC9b49d90e6526dAa929f2766a33BFFD52"
-RPC = "https://bsc-builder-dublin.blxrbdn.com"
-Website = "https://bloxroute.com"
-Contact = "support@bloxroute.com"
-
-
 [bloxroute-builder-frankfurt]
 Address = "0x2873fc7aD9122933BECB384f5856f0E87918388d"
 RPC = "https://bsc-builder-frankfurt.blxrbdn.com"
-Website = "https://bloxroute.com"
-Contact = "support@bloxroute.com"
-
-[bloxroute-builder-japan]
-Address = "0x432101856a330aafdeB049dD5fA03a756B3f1c66"
-RPC = "https://bsc-builder-japan.blxrbdn.com"
 Website = "https://bloxroute.com"
 Contact = "support@bloxroute.com"
 
