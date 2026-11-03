@@ -222,3 +222,27 @@ Address = "0x89b08890751b28511541f5fed08d7d964caae911"
 RPC = "https://us.bsc.flashblock.trade"
 Website = "https://www.flashblock.trade"
 Description = "Built for Traders. Lightning-Fast Transaction Execution on BSC."
+
+[hades-1]
+Address = "0x4ADE5000001e9e64254933cadE157d32d22Ff362"
+RPC = "https://rpc.hades.build"
+Website = "https://hades.build/"
+Description = "Hades builds blocks on BNB Chain. Fast, private by default, sandwich-proof, with tools for builders and creators."
+
+[hades-2]
+Address = "0x4ADE5000004bde34DEfe189B25d599e23763BaE7"
+RPC = "https://rpc.hades.build"
+Website = "https://hades.build/"
+Description = "Hades builds blocks on BNB Chain. Fast, private by default, sandwich-proof, with tools for builders and creators."
+
+[hades-3]
+Address = "0x4ADE500000623a89fCB2fA6f8629b3275d91df51"
+RPC = "https://rpc.hades.build"
+Website = "https://hades.build/"
+Description = "Hades builds blocks on BNB Chain. Fast, private by default, sandwich-proof, with tools for builders and creators."
+
+[hades-4]
+Address = "0x4ADE500000435eA326322DA71F349b04766815c9"
+RPC = "https://rpc.hades.build"
+Website = "https://hades.build/"
+Description = "Hades builds blocks on BNB Chain. Fast, private by default, sandwich-proof, with tools for builders and creators."
